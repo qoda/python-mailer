@@ -60,7 +60,7 @@ Example of using placeholders in your html email::
 
 CSV
 ~~~
-Example of how the csv file should look:
+Example of how the csv file should look::
 
     Someones Name,someone@example.com
     Someone Else,someone.else@example.com
