@@ -11,8 +11,6 @@ from email import message, generator
 
 from config import *
 
-print FROM_NAME
-
 # setup logging to specified log file
 logging.basicConfig(filename=LOG_FILENAME, level=logging.ERROR)
 
@@ -70,9 +68,9 @@ class PyMailer():
         
         # replace all placeolders associated to recipient_data keys    
         if recipient_data:
-            for data in recipient_data:
-                placeholder = "{{ %s }}" % data.key()
-                html_content.replace(placeholder, data.value())
+            for key, value in recipient_data.items():
+                placeholder = "<!--%s-->" % key
+                html_content = html_content.replace(placeholder, value)
                 
         return html_content
     
@@ -84,24 +82,19 @@ class PyMailer():
         recipient = "%s <%s>" % (recipient_data.get('name'), recipient_data.get('email'))
         sender = "%s <%s>" % (self.from_name, self.from_email)
         
-        # instatiate the imetype and required headers
-        output = cStringIO.StringIO()
-        email_message = message.Message()
+        # get the html content
+        html_content = self._html_parser(recipient_data)
         
+        # instatiate the email object and assign headers
+        email_message = message.Message()
         email_message.add_header('From', sender)
         email_message.add_header('To', recipient)
         email_message.add_header('Subject', self.subject)
         email_message.add_header('MIME-Version', '1.0')
-        email_message.add_header('Content-Type', 'text/html', [('charset', 'us-ascii')])
+        email_message.add_header('Content-Type', 'text/html')
         email_message.set_payload(html_content)
         
-        response = output.getvalue()
-        output.close()
-        
-        return response
-    
-    def _map_data(self):
-        pass
+        return email_message.as_string()
     
     def _parse_csv(self, csv_path=None):
         """
@@ -152,9 +145,9 @@ class PyMailer():
             if is_resend:
                 recipient_list = self._parse_csv(CSV_RETRY_FILENAME)
         
-        for recipient_data in recipient_data_list:
+        for recipient_data in recipient_list:
             # instantiate the required vars to send email
-            message = _form_email(recipient_data)
+            message = self._form_email(recipient_data)
             recipient = "%s <%s>" % (recipient_data.get('name'), recipient_data.get('email'))
             sender = "%s <%s>" % (self.from_name, self.from_email)
             
@@ -165,43 +158,54 @@ class PyMailer():
             except:
                 logging.error("Recipient email address failed (%s)") % recipient
                 self._retry_handler(recipient_data)
-                
-        # try and resend to reject recipients two more times
-        for i in range(2):
-            self.send(is_resend=True)
             
+        
     def send_test(self):
         self.send(recipient_list=TEST_RECIPIENTS)
+        
+    def resend_failed(self):
+        self.send(is_resend=True)
         
     def count_recipients():
         return len(self._parse_csv(csv_file))
 
 def main(sys_args):
+    if not os.path.exists(CSV_RETRY_FILENAME):
+        open(CSV_RETRY_FILENAME, 'w').close()
+        
     try:
         action, html_path, csv_path, subject = sys_args
     except ValueError:
-        print "Not enough argumants supplied. PyMailer requests 3 arguments: ./pymailer -s html_path csv_path subject"
+        print "Not enough argumants supplied. PyMailer requests 1 option and 3 arguments: ./pymailer -s html_path csv_path subject"
+        sys.exit()
         
-    if os.path.splitext(html_path) != 'html':
-        print "The html path doesn't seem to contain an html file."
+    if os.path.splitext(html_path)[1] != '.html':
+        print "The html_path argument doesn't seem to contain a valid html file."
+        sys.exit()
         
-    if os.path.splitext(csv_path) != 'csv':
-        print "The csv path doesn't seem to contain an html file."
+    if os.path.splitext(csv_path)[1] != '.csv':
+        print "The csv_path argument doesn't seem to contain a valid csv file."
+        sys.exit()
         
     pymailer = PyMailer(html_path, csv_path, subject)
     if action == '-s':
         if raw_input("You are about to send to %s recipients. Do you want to continue (yes/no)? ") == 'yes':
             pymailer.send()
+            
+            # try and resend to reject recipients two more times
+            for i in range(2):
+                self.send(is_resend=True)
         else:
             print "Aborted."
+            sys.exit()
     elif action == '-t':
         if raw_input("You are about to send a test mail to all recipients as specified in config.py. Do you want to continue (yes/no)? ") == 'yes':
             pymailer.send_test()
         else:
             print "Aborted."
-        pymailer.send_test()
+            sys.exit()
     else:
-        print "%s option is not support. Use either [-s] to send to all recipients or [-t] to send to test recipients" % option
+        print "%s option is not support. Use either [-s] to send to all recipients or [-t] to send to test recipients" % action
     
 if __name__ == '__main__':
     main(sys.argv[1:])
