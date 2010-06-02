@@ -30,7 +30,6 @@ Send the actual email to all recipients::
 
     $ ./pymailer -s /path/to/html/file.html /path/to/csv/file.csv 'Email Subject'
 
-
 Module Import
 ~~~~~~~~~~~~~
 Alernatively import the PyMailer class into your own code::
@@ -44,6 +43,28 @@ Alernatively import the PyMailer class into your own code::
     
     # send bulk mail
     pymailer.send()
+    
+Examples
+--------
+HTML
+~~~~
+Example of using placeholders in your html email::
+
+    <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+    <html lang="en">
+        <body>
+            <h1>Test HTML Email - <!--name--></h1>
+            <p>Hi <!--name-->, This is a test email from Pymailer - <a href="http://github.com:80/qoda/PyMailer/">http://github.com:80/qoda/PyMailer/</a>.</p>
+        </body>
+    </html>
+
+CSV
+~~~
+Example of how the csv file should look:
+
+    Someones Name,someone@example.com
+    Someone Else,someone.else@example.com
+    ,some.nameless.person@example.com
     
 Author
 ------
