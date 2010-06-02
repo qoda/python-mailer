@@ -5,15 +5,15 @@ retry files have the correct permissions.
 
 # file settings
 LOG_FILENAME = '/tmp/pymailer.log'
-CSV_RETRY_FILENAME = '/tmp/pymailer_retry.csv'
+CSV_RETRY_FILENAME = '/tmp/pymailer.csv'
 
 # smtp settings
 SMTP_HOST = 'localhost'
-SMTP_POST = '25'
+SMTP_PORT = '25'
 
 # the address and name the email comes from
-FROM_NAME = 'Name'
-FROM_EMAIL = 'someone@example.com'
+FROM_NAME = 'Comapny Name'
+FROM_EMAIL = 'company@example.com'
 
 # test recipients list
 TEST_RECIPIENTS = [
