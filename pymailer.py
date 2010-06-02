@@ -12,7 +12,7 @@ from email import message, generator
 from config import *
 
 # setup logging to specified log file
-logging.basicConfig(filename=LOG_FILENAME, level=logging.ERROR)
+logging.basicConfig(filename=LOG_FILENAME)
 
 class PyMailer():
     """
@@ -158,9 +158,9 @@ class PyMailer():
             smtp_server = smtplib.SMTP(host=SMTP_HOST, port=SMTP_PORT)
             try:
                 smtp_server.sendmail(sender, recipient, message)
-                logging.info("Successfully sent to recipient: %s") % recipient
+                logging.info("Successfully sent to recipient: %s" % recipient)
             except:
-                logging.error("Recipient email address failed (%s)") % recipient
+                logging.error("Recipient email address failed: %s" % recipient)
                 self._retry_handler(recipient_data)
             
     def send_test(self):
