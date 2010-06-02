@@ -12,6 +12,11 @@ Requirements
 
 Usage
 -----
+Setup
+~~~~~
+Edit the config file before running the script::
+
+    $ vim config.py
 
 Commandline
 ~~~~~~~~~~~
