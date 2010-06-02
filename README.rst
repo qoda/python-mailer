@@ -43,5 +43,3 @@ Alernatively import the PyMailer class into your own code::
 Author
 ------
 Jonathan Bydendyk - Edenvale, South Africa
-
-jonathan@blu-marble.co.za | blog.blu-marble.co.za
