@@ -148,18 +148,21 @@ class PyMailer():
         for recipient_data in recipient_list:
             # instantiate the required vars to send email
             message = self._form_email(recipient_data)
-            recipient = "%s <%s>" % (recipient_data.get('name'), recipient_data.get('email'))
+            if recipient_data.get('name'):
+                recipient = "%s <%s>" % (recipient_data.get('name'), recipient_data.get('email'))
+            else:
+                recipient = recipient_data.get('email')
             sender = "%s <%s>" % (self.from_name, self.from_email)
             
             # send the actual email
             smtp_server = smtplib.SMTP(host=SMTP_HOST, port=SMTP_PORT)
             try:
                 smtp_server.sendmail(sender, recipient, message)
+                logging.info("Successfully sent to recipient: %s") % recipient
             except:
                 logging.error("Recipient email address failed (%s)") % recipient
                 self._retry_handler(recipient_data)
             
-        
     def send_test(self):
         self.send(recipient_list=TEST_RECIPIENTS)
         
