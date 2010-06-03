@@ -170,17 +170,17 @@ class PyMailer():
         csv_file.close()
         return recipient_data_list
     
-    def send(self, is_resend=False, recipient_list=None):
+    def send(self, retry_count=0, recipient_list=None):
         """
         Iterate over the recipient list and send the specified email. 
         """
         if not recipient_list:
             recipient_list = self._parse_csv()
-            if is_resend:
+            if retry_count:
                 recipient_list = self._parse_csv(CSV_RETRY_FILENAME)
                 
         # save the number of recipient and time started to the stats file
-        if not is_resend:
+        if not retry_count:
             self._stats("TOTAL RECIPIENTS: %s" % len(recipient_list))
             self._stats("START TIME: %s" % datetime.now())
         
@@ -218,7 +218,11 @@ class PyMailer():
         self.send(recipient_list=TEST_RECIPIENTS)
         
     def resend_failed(self):
-        self.send(is_resend=True)
+        """
+        Try and resend to failed recipients two more times.
+        """
+        for i in range(1, 3):
+            self.send(retry_count=i)
         
     def count_recipients():
         return len(self._parse_csv(csv_file))
@@ -251,11 +255,9 @@ def main(sys_args):
             # save the csv file used to the stats file
             pymailer._stats("CSV USED: %s" % csv_path)
             
+            # send the email and try resend to failed recipients
             pymailer.send()
-            
-            # try and resend to reject recipients two more times
-            for i in range(2):
-                self.send(is_resend=True)
+            self.resend_failed()
         else:
             print "Aborted."
             sys.exit()
