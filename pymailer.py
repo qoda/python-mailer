@@ -7,12 +7,14 @@ import os
 import smtplib
 import sys
 
+from datetime import datetime
 from email import message, generator
+from time import sleep
 
 from config import *
 
 # setup logging to specified log file
-logging.basicConfig(filename=LOG_FILENAME)
+logging.basicConfig(filename=LOG_FILENAME, level=logging.DEBUG)
 
 class PyMailer():
     """
@@ -27,6 +29,38 @@ class PyMailer():
         self.subject = subject
         self.from_name = FROM_NAME
         self.from_email = FROM_EMAIL
+        
+    def _stats(self, message):
+        """
+        Update stats log with: last recipient (incase the server crashes);
+        datetime started; datetime ended; total number of recipients attempted;
+        number of failed recipients; and database used.
+        """
+        try:
+            stats_file = open(STATS_FILE, 'r')
+        except IOError:
+            raise IOError, "The stats file path is invalid."
+        
+        stats_entries = stats_file.read().split('\n')
+        
+        # check if the stats entry exists if it does overwrite it with the new message
+        is_existing_entry = False
+        if stats_entries:
+            for i, entry in enumerate(stats_entries):
+                if entry:
+                    if message[:5] == entry[:5]:
+                        stats_entries[i] = message
+                        is_existing_entry = True
+        
+        # if the entry does not exist append it to the file
+        if not is_existing_entry:
+            stats_entries.append(message)
+        
+        stats_file = open(STATS_FILE, 'w')
+        for entry in stats_entries:
+            if entry:
+                stats_file.write("%s\n" % entry)
+        stats_file.close()
         
     def _validate_email(self, email_address):
         """
@@ -144,6 +178,14 @@ class PyMailer():
             recipient_list = self._parse_csv()
             if is_resend:
                 recipient_list = self._parse_csv(CSV_RETRY_FILENAME)
+                
+        # save the number of recipient and time started to the stats file
+        if not is_resend:
+            self._stats("TOTAL RECIPIENTS: %s" % len(recipient_list))
+            self._stats("START TIME: %s" % datetime.now())
+        
+        # instantiate the number of falied recipients
+        failed_recipients = 0
         
         for recipient_data in recipient_list:
             # instantiate the required vars to send email
@@ -158,10 +200,19 @@ class PyMailer():
             smtp_server = smtplib.SMTP(host=SMTP_HOST, port=SMTP_PORT)
             try:
                 smtp_server.sendmail(sender, recipient, message)
-                logging.info("Successfully sent to recipient: %s" % recipient)
+                
+                # save the last recipient to the stats file incase the process fails
+                self._stats("LAST RECIPIENT: %s" % recipient)
+                
+                # allow the system to sleep for .25 secs to take load off the SMTP server
+                sleep(0.25)
             except:
                 logging.error("Recipient email address failed: %s" % recipient)
                 self._retry_handler(recipient_data)
+                
+                # save the number of failed recipients to the stats file
+                failed_recipients = failed_recipients + 1
+                self._stats("FAILED RECIPIENTS: %s" % failed_recipients)
             
     def send_test(self):
         self.send(recipient_list=TEST_RECIPIENTS)
@@ -174,7 +225,10 @@ class PyMailer():
 
 def main(sys_args):
     if not os.path.exists(CSV_RETRY_FILENAME):
-        open(CSV_RETRY_FILENAME, 'w').close()
+        open(CSV_RETRY_FILENAME, 'wb').close()
+        
+    if not os.path.exists(STATS_FILE):
+        open(STATS_FILE, 'wb').close()
         
     try:
         action, html_path, csv_path, subject = sys_args
@@ -191,8 +245,12 @@ def main(sys_args):
         sys.exit()
         
     pymailer = PyMailer(html_path, csv_path, subject)
+    
     if action == '-s':
         if raw_input("You are about to send to %s recipients. Do you want to continue (yes/no)? ") == 'yes':
+            # save the csv file used to the stats file
+            pymailer._stats("CSV USED: %s" % csv_path)
+            
             pymailer.send()
             
             # try and resend to reject recipients two more times
@@ -209,6 +267,9 @@ def main(sys_args):
             sys.exit()
     else:
         print "%s option is not support. Use either [-s] to send to all recipients or [-t] to send to test recipients" % action
+        
+    # save the end time to the stats file
+    pymailer._stats("END TIME: %s" % datetime.now())
     
 if __name__ == '__main__':
     main(sys.argv[1:])
