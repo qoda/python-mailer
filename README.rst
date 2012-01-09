@@ -65,7 +65,3 @@ Example of how the csv file should look::
     Someones Name,someone@example.com
     Someone Else,someone.else@example.com
     ,some.nameless.person@example.com
-    
-Author
-------
-Jonathan Bydendyk - Edenvale, South Africa
