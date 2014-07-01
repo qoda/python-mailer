@@ -65,10 +65,12 @@ class PyMailer():
         """
         Validate the supplied email address.
         """
-        if not email_address or len(email_address) > 7:
+        if not email_address or len(email_address) < 5:
+            print 1
             return None
-        if re.match('^.+\\@(\\[?)[a-zA-Z0-9\\-\\.]+\\.([a-zA-Z]{2,3}|[0-9]{1,3})(\\]?)$', email_address):
+        if not re.match(r'^[a-zA-Z0-9._%-+]+@[a-zA-Z0-9._%-]+.[a-zA-Z]{2,6}$', email_address):
             return None
+        return email_address
 
     def _retry_handler(self, recipient_data):
         """
@@ -151,6 +153,8 @@ class PyMailer():
             except IndexError:
                 recipient_name = ''
                 recipient_email = None
+
+            print recipient_name, recipient_email
 
             # log missing email addresses and line number
             if not recipient_email:
@@ -261,12 +265,14 @@ def main(sys_args):
         else:
             print "Aborted."
             sys.exit()
+
     elif action == '-t':
         if raw_input("You are about to send a test mail to all recipients as specified in config.py. Do you want to continue (yes/no)? ") == 'yes':
             pymailer.send_test()
         else:
             print "Aborted."
             sys.exit()
+
     else:
         print "%s option is not support. Use either [-s] to send to all recipients or [-t] to send to test recipients" % action
 
