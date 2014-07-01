@@ -166,6 +166,7 @@ class PyMailer():
             csv_file.write('')
 
         csv_file.close()
+
         return recipient_data_list
 
     def send(self, retry_count=0, recipient_list=None):
@@ -222,8 +223,8 @@ class PyMailer():
         for i in range(1, 3):
             self.send(retry_count=i)
 
-    def count_recipients(self, csv_file):
-        return len(self._parse_csv(csv_file))
+    def count_recipients(self, csv_path=None):
+        return len(self._parse_csv(csv_path))
 
 
 def main(sys_args):
