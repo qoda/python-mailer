@@ -125,7 +125,7 @@ class PyMailer():
         email_message.add_header('To', recipient)
         email_message.add_header('Subject', self.subject)
         email_message.add_header('MIME-Version', '1.0')
-        email_message.add_header('Content-Type', 'text/html')
+        email_message.add_header('Content-Type', 'text/html; charset="utf-8"')
         email_message.set_payload(html_content)
 
         return email_message.as_string()
