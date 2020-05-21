@@ -35,15 +35,15 @@ Module Import
 Alernatively import the PyMailer class into your own code::
 
     from pymailer import PyMailer
-    
-    pymailer = PyMailer('/path/to/html/file.html' '/path/to/csv/file.csv' 'Email Subject')
-    
+
+    pymailer = PyMailer('/path/to/html/file.html', '/path/to/csv/file.csv', 'Email Subject')
+
     # send a test email
     pymailer.send_test()
-    
+
     # send bulk mail
     pymailer.send()
-    
+
 Examples
 --------
 HTML
