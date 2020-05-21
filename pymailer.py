@@ -1,19 +1,18 @@
 #!/usr/bin/env python
 
 import csv
+from datetime import datetime
+from email import message
 import logging
 import os
 import re
 import smtplib
 import sys
-
-from datetime import datetime
-from email import message
 from time import sleep
 
 import config
 
-# setup logging to specified log file
+# Setup logging to specified log file
 logging.basicConfig(filename=config.LOG_FILENAME, level=logging.DEBUG)
 
 
@@ -42,7 +41,7 @@ class PyMailer():
 
         stats_entries = stats_file.read().split('\n')
 
-        # check if the stats entry exists if it does overwrite it with the new message
+        # Check if the stats entry exists if it does overwrite it with the new message
         is_existing_entry = False
         if stats_entries:
             for i, entry in enumerate(stats_entries):
@@ -51,7 +50,7 @@ class PyMailer():
                         stats_entries[i] = message
                         is_existing_entry = True
 
-        # if the entry does not exist append it to the file
+        # If the entry does not exist append it to the file
         if not is_existing_entry:
             stats_entries.append(message)
 
@@ -66,7 +65,6 @@ class PyMailer():
         Validate the supplied email address.
         """
         if not email_address or len(email_address) < 5:
-            print 1
             return None
         if not re.match(r'^[a-zA-Z0-9._%-+]+@[a-zA-Z0-9._%-]+.[a-zA-Z]{2,6}$', email_address):
             return None
@@ -100,7 +98,7 @@ class PyMailer():
         if not html_content:
             raise Exception("The html file is empty.")
 
-        # replace all placeolders associated to recipient_data keys
+        # Replace all placeolders associated to recipient_data keys
         if recipient_data:
             for key, value in recipient_data.items():
                 placeholder = "<!--%s-->" % key
@@ -112,14 +110,15 @@ class PyMailer():
         """
         Form the html email, including mimetype and headers.
         """
-        # form the recipient and sender headers
+
+        # Form the recipient and sender headers
         recipient = "%s <%s>" % (recipient_data.get('name'), recipient_data.get('email'))
         sender = "%s <%s>" % (self.from_name, self.from_email)
 
-        # get the html content
+        # Get the html content
         html_content = self._html_parser(recipient_data)
 
-        # instatiate the email object and assign headers
+        # Instatiate the email object and assign headers
         email_message = message.Message()
         email_message.add_header('From', sender)
         email_message.add_header('To', recipient)
@@ -146,7 +145,7 @@ class PyMailer():
         csv_reader = csv.reader(csv_file)
         recipient_data_list = []
         for i, row in enumerate(csv_reader):
-            # test indexes exist and validate email address
+            # Test indexes exist and validate email address
             try:
                 recipient_name = row[0]
                 recipient_email = self._validate_email(row[1])
@@ -154,9 +153,9 @@ class PyMailer():
                 recipient_name = ''
                 recipient_email = None
 
-            print recipient_name, recipient_email
+            print(recipient_name, recipient_email)
 
-            # log missing email addresses and line number
+            # Log missing email addresses and line number
             if not recipient_email:
                 logging.error("Recipient email missing in line %s" % i)
             else:
@@ -165,7 +164,7 @@ class PyMailer():
                     'email': recipient_email,
                 })
 
-        # clear the contents of the resend csv file
+        # Clear the contents of the resend csv file
         if is_resend:
             csv_file.write('')
 
@@ -182,16 +181,16 @@ class PyMailer():
             if retry_count:
                 recipient_list = self._parse_csv(config.CSV_RETRY_FILENAME)
 
-        # save the number of recipient and time started to the stats file
+        # Save the number of recipient and time started to the stats file
         if not retry_count:
             self._stats("TOTAL RECIPIENTS: %s" % len(recipient_list))
             self._stats("START TIME: %s" % datetime.now())
 
-        # instantiate the number of falied recipients
+        # Instantiate the number of falied recipients
         failed_recipients = 0
 
         for recipient_data in recipient_list:
-            # instantiate the required vars to send email
+            # Instantiate the required vars to send email
             message = self._form_email(recipient_data)
             if recipient_data.get('name'):
                 recipient = "%s <%s>" % (recipient_data.get('name'), recipient_data.get('email'))
@@ -199,21 +198,21 @@ class PyMailer():
                 recipient = recipient_data.get('email')
             sender = "%s <%s>" % (self.from_name, self.from_email)
 
-            # send the actual email
+            # Send the actual email
             smtp_server = smtplib.SMTP(host=config.SMTP_HOST, port=config.SMTP_PORT)
             try:
                 smtp_server.sendmail(sender, recipient, message)
 
-                # save the last recipient to the stats file incase the process fails
+                # Save the last recipient to the stats file incase the process fails
                 self._stats("LAST RECIPIENT: %s" % recipient)
 
-                # allow the system to sleep for .25 secs to take load off the SMTP server
+                # Allow the system to sleep for .25 secs to take load off the SMTP server
                 sleep(0.25)
             except:
                 logging.error("Recipient email address failed: %s" % recipient)
                 self._retry_handler(recipient_data)
 
-                # save the number of failed recipients to the stats file
+                # Save the number of failed recipients to the stats file
                 failed_recipients = failed_recipients + 1
                 self._stats("FAILED RECIPIENTS: %s" % failed_recipients)
 
@@ -241,42 +240,49 @@ def main(sys_args):
     try:
         action, html_path, csv_path, subject = sys_args
     except ValueError:
-        print "Not enough argumants supplied. PyMailer requests 1 option and 3 arguments: ./pymailer -s html_path csv_path subject"
+        print("Not enough argumants supplied. PyMailer requests 1 option and 3 arguments: ./pymailer -s html_path csv_path subject")
         sys.exit()
 
     if os.path.splitext(html_path)[1] != '.html':
-        print "The html_path argument doesn't seem to contain a valid html file."
+        print("The html_path argument doesn't seem to contain a valid html file.")
         sys.exit()
 
     if os.path.splitext(csv_path)[1] != '.csv':
-        print "The csv_path argument doesn't seem to contain a valid csv file."
+        print("The csv_path argument doesn't seem to contain a valid csv file.")
         sys.exit()
 
     pymailer = PyMailer(html_path, csv_path, subject)
 
     if action == '-s':
-        if raw_input("You are about to send to %s recipients. Do you want to continue (yes/no)? " % pymailer.count_recipients()) == 'yes':
-            # save the csv file used to the stats file
+        confirmation = raw_input(
+            "You are about to send to {} recipients. Do you want to continue (yes/no)? ".format(pymailer.count_recipients())
+        )
+        if confirmation in ['yes', 'y']:
+
+            # Save the csv file used to the stats file
             pymailer._stats("CSV USED: %s" % csv_path)
 
-            # send the email and try resend to failed recipients
+            # Send the email and try resend to failed recipients
             pymailer.send()
             pymailer.resend_failed()
         else:
-            print "Aborted."
+            print("Aborted.")
             sys.exit()
 
     elif action == '-t':
-        if raw_input("You are about to send a test mail to all recipients as specified in config.py. Do you want to continue (yes/no)? ") == 'yes':
+        confirmation = raw_input(
+            "You are about to send a test mail to all recipients as specified in config.py. Do you want to continue (yes/no)? "
+        )
+        if confirmation in ['yes', 'y']:
             pymailer.send_test()
         else:
-            print "Aborted."
+            print("Aborted.")
             sys.exit()
 
     else:
-        print "%s option is not support. Use either [-s] to send to all recipients or [-t] to send to test recipients" % action
+        print("{} option is not support. Use either [-s] to send to all recipients or [-t] to send to test recipients".format(action))
 
-    # save the end time to the stats file
+    # Save the end time to the stats file
     pymailer._stats("END TIME: %s" % datetime.now())
 
 if __name__ == '__main__':
